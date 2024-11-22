@@ -2,7 +2,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional
 
 from xAI.x_ai import XAI
-# from openAi import OpenAI
+# from openAi.o_ai import OAI
 
 logger = logging.getLogger(__name__)
 
