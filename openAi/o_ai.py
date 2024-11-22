@@ -32,10 +32,6 @@ class OAI:
         "gpt-4o-mini": {
             "input": 150.0,         # $0.150 per 1M input tokens
             "output": 600.0         # $0.600 per 1M output tokens
-        },
-        "o1-preview": {
-            "input": 15000.0,       # $15.00 per 1M input tokens
-            "output": 60000.0       # $60.00 per 1M output tokens
         }
     }
     
@@ -288,5 +284,6 @@ class OAI:
             raise ValueError("Failed to convert response to JSON") from e
 
 if __name__ == "__main__":
-    oai = OAI()
+    oai = OAI(model="gpt-4o")
     print(oai.chat("What is the capital of France?"))
+    print(oai.cost)
