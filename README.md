@@ -72,4 +72,8 @@ agent = AgentX(
 )
 ```
 
-## Installation
+## ENV
+
+```
+XAI_API_KEY=
+```
