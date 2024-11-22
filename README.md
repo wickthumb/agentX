@@ -1,4 +1,4 @@
-# AgentX & XAI
+# agentxai
 
 A powerful autonomous agent framework powered by X.AI's Grok model.
 

@@ -1,4 +1,4 @@
-name: agentXAI
+name: agentxai
 
 on:
   release:
