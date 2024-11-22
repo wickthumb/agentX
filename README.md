@@ -23,6 +23,7 @@ A lightweight, but effective autonomous agent framework powered by X.AI's Grok m
 example agent:
 
 ```python
+from agentX.agent_x import AgentX
 
 def my_function(input: str) -> str:
     """
