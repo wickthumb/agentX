@@ -11,7 +11,7 @@ jobs:
     environment:
       name: release
     permissions:
-      # Required for trusted publishing
+      # Required for OIDC publishing to PyPI
       id-token: write
     
     steps:
@@ -30,5 +30,6 @@ jobs:
       - name: Build package
         run: python -m build
       
-      - name: Publish to PyPI
+      - name: Publish to PyPI using trusted publishing
         uses: pypa/gh-action-pypi-publish@release/v1
+        # No credentials needed - uses OIDC
