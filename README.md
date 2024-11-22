@@ -72,7 +72,14 @@ agent = AgentX(
 )
 ```
 
-## ENV
+## Installation
+
+```bash
+pip install agentxai
+```
+
+## ENV Variables
+
 
 ```
 XAI_API_KEY=
