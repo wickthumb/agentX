@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: agentXAI
 
 on:
   release:
@@ -8,7 +8,8 @@ jobs:
   build-n-publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: release
     permissions:
       # Required for trusted publishing
       id-token: write
