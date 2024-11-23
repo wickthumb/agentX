@@ -6,7 +6,7 @@ A lightweight, but effective autonomous agent framework powered by X.AI's Grok m
 
 - **AgentX**: An autonomous agent that can execute complex missions using provided tools
   - `tools`: List of callable functions the agent can use to complete its mission
-    - can be another agent, assuming the agent lives in a funciton
+    - can be another agent, assuming the agent lives in a function
   - `mission`: String describing the goal or task to accomplish
   - `exit_function`: Optional callback function executed upon mission completion
     - default is a success bool
@@ -14,11 +14,45 @@ A lightweight, but effective autonomous agent framework powered by X.AI's Grok m
   - `model`: AI model selection (default: "grok-beta")
   - `enable_logging`: Toggle detailed logging (default: False)
   - `max_steps`: Maximum execution steps before termination (default: 10)
-- **XAI**: A robust client for interacting with X.AI's Grok model
+- **XAI**: A robust client for interacting with X.AI's Grok model and other supported AI models
+- **Model Selection**: Choose from three AI models to power your agents
+  - `grok-beta`: X.AI's Grok model
+  - `gpt-4o`: OpenAI's GPT-4 optimized for performance
+  - `gpt-4o-mini`: A lightweight version of GPT-4 optimized for minimal resource usage
 - Cost tracking and token usage monitoring
 - Automatic retries and error handling
 - JSON response validation
 - Configurable logging
+
+## Model Selection
+
+AgentXAI supports three AI models, each with different capabilities and cost structures. You can select the desired model when initializing `AgentX` or `XAI`.
+
+### Available Models
+
+1. **grok-beta**
+   - **Provider**: X.AI
+   - **Cost**:
+     - Input Tokens: $5.00 per 1M tokens
+     - Output Tokens: $15.00 per 1M tokens
+
+2. **gpt-4o**
+   - **Provider**: OpenAI
+   - **Cost**:
+     - Input Tokens: $2.50 per 1M tokens
+     - Output Tokens: $10.00 per 1M tokens
+
+3. **gpt-4o-mini**
+   - **Provider**: OpenAI
+   - **Cost**:
+     - Input Tokens: $0.150 per 1M tokens
+     - Output Tokens: $0.600 per 1M tokens
+
+### Selecting a Model
+
+When initializing `AgentX` or `XAI`, specify the `model` parameter to select the desired AI model.
+
+#### Example: Initializing AgentX with `gpt-4o-mini`
 
 example agent:
 
@@ -54,6 +88,7 @@ def exit_function(message: str) -> int:
         return -1
 
 agent = AgentX(
+    model="grok-beta",
     tools=[my_function],
     mission="""
     Do something with

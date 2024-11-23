@@ -1,10 +1,9 @@
 import os
-import requests
+from openai import OpenAI
 import json
 import logging
 from typing import Any, Dict, Optional, Union, List
 from dotenv import load_dotenv
-from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -20,10 +19,20 @@ class XAI:
     and response validation.
     """
     
-    API_URL: str = "https://api.x.ai/v1/chat/completions"
-    PROMPT_COST_RATE: float = 5.0 / 1_000_000  # $5 per 1M input tokens
-    COMPLETION_COST_RATE: float = 15.0 / 1_000_000  # $15 per 1M output tokens
-    MAX_RETRIES: int = 3
+    MODEL_COSTS = {
+        "grok-beta": {
+            "input": 5.0,          # $5.00 per 1M input tokens
+            "output": 15.0         # $15.00 per 1M output tokens
+        },
+        "gpt-4o": {
+            "input": 2.50,       # $2.50 per 1M input tokens
+            "output": 10.0      # $10.00 per 1M output tokens
+        },
+        "gpt-4o-mini": {
+            "input": 0.150,        # $0.150 per 1M input tokens
+            "output": 0.600        # $0.600 per 1M output tokens
+        }
+    }
 
     def __init__(
         self,
@@ -50,14 +59,19 @@ class XAI:
         self.prompt_tokens: int = 0
         self.completion_tokens: int = 0
 
-        # Initialize a session for HTTP requests
-        self.session = requests.Session()
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {os.getenv('XAI_API_KEY')}"
-        })
-        retries = HTTPAdapter(max_retries=self.MAX_RETRIES)
-        self.session.mount("https://", retries)
+        # Initialize OpenAI client
+        if "grok" in model:
+            logger.error("NO XAI_API_KEY FOUND") if not os.getenv('XAI_API_KEY') else None
+            base_url = "https://api.x.ai/v1"
+            self.client = OpenAI(
+                api_key=os.getenv('XAI_API_KEY'),
+                base_url=base_url
+            )
+        else:
+            logger.error("NO OPENAI_API_KEY FOUND") if not os.getenv('OPENAI_API_KEY') else None
+            self.client = OpenAI(
+                api_key=os.getenv('OPENAI_API_KEY')
+            )
 
     def update_context(self, new_context: str) -> None:
         """
@@ -85,8 +99,9 @@ class XAI:
         Returns:
             float: Total cost in USD.
         """
-        total_cost = (self.prompt_tokens * self.PROMPT_COST_RATE) + \
-                     (self.completion_tokens * self.COMPLETION_COST_RATE)
+        model_costs = self.MODEL_COSTS[self.model]
+        total_cost = (self.prompt_tokens * model_costs["input"] / 1_000_000) + \
+                     (self.completion_tokens * model_costs["output"] / 1_000_000)
         if self.enable_logging:
             logger.info(f"Total cost so far: ${total_cost:.6f}")
         return total_cost
@@ -156,30 +171,25 @@ class XAI:
             "content": prompt
         })
 
-        data = {
-            "messages": self.messages,
-            "model": self.model,
-            "stream": False,
-            "temperature": 0
-        }
-
         try:
-            response = self.session.post(self.API_URL, json=data)
-            response.raise_for_status()
-            response_json = response.json()
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=self.messages,
+                temperature=0
+            )
 
-            if 'choices' in response_json and response_json['choices']:
-                response_content = response_json['choices'][0]['message']
+            if completion.choices:
+                response_content = completion.choices[0].message
 
                 if expected_format:
                     try:
-                        json_result = self.convert_to_json(response_json)
+                        json_result = self.convert_to_json({"choices": [{"message": {"content": response_content.content}}]})
                         validated_result = self.assert_keys(json_result, expected_format)
                         if validated_result:
-                            self.messages.append(response_content)
+                            self.messages.append({"role": response_content.role, "content": response_content.content})
                             if self.enable_logging:
-                                logger.info(response_content['content'])
-                            self._update_tokens(response_json)
+                                logger.info(response_content.content)
+                            self._update_tokens(completion.usage)
                             return validated_result
                         self.messages.pop()
                     except (ValueError, KeyError) as e:
@@ -187,29 +197,28 @@ class XAI:
                         self.messages.pop()
                         raise
                 else:
-                    self.messages.append(response_content)
+                    self.messages.append({"role": response_content.role, "content": response_content.content})
                     if self.enable_logging:
-                        logger.info(response_content['content'])
-                    self._update_tokens(response_json)
-                    return response_json['choices'][0]['message']['content']
+                        logger.info(response_content.content)
+                    self._update_tokens(completion.usage)
+                    return response_content.content
             else:
                 logger.error("Invalid response structure")
                 raise ValueError("Invalid response structure")
 
-        except RequestException as e:
+        except Exception as e:
             logger.error(f"Request failed: {e}")
             raise
 
-    def _update_tokens(self, response_json: Dict[str, Any]) -> None:
+    def _update_tokens(self, usage: Any) -> None:
         """
         Update the token counts based on the API response.
         
         Args:
-            response_json (Dict[str, Any]): The JSON response from the API.
+            usage (Any): The usage information from the API response.
         """
-        usage = response_json.get('usage', {})
-        self.prompt_tokens += usage.get('prompt_tokens', 0)
-        self.completion_tokens += usage.get('completion_tokens', 0)
+        self.prompt_tokens += usage.prompt_tokens
+        self.completion_tokens += usage.completion_tokens
         if self.enable_logging:
             logger.info(f"Updated tokens - Prompt: {self.prompt_tokens}, Completion: {self.completion_tokens}")
 
@@ -281,5 +290,6 @@ if __name__ == "__main__":
     try:
         print(xai.chat("What is the capital of France?", expected_format={"capital": "str"}))
         print(xai.chat("What is that place most famous for?"))
+        print(f"{xai.cost:.4f}")
     except Exception as e:
         logger.error(f"An error occurred: {e}")
