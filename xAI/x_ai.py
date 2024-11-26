@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Union, List
 from dotenv import load_dotenv
 from requests.exceptions import RequestException
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import base64
 
 load_dotenv()
 
@@ -72,6 +73,68 @@ class XAI:
             self.client = OpenAI(
                 api_key=os.getenv('OPENAI_API_KEY')
             )
+
+    def vision(self, prompt: str, base64_image: str, model: str = "grok-vision-beta", append_to_history: bool = True) -> str:
+        """
+        Send a vision request to process an image with accompanying text prompt.
+        
+        Args:
+            prompt (str): Text prompt to accompany the image
+            base64_image (str): Base64 encoded image string
+            model (str): Model to use for vision processing (default: grok-vision-beta)
+            append_to_history (bool): Whether to append the interaction to message history
+            
+        Returns:
+            str: The model's response
+        """
+        try:
+            _messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}",
+                                "detail": "high"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ]
+
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=_messages
+            )
+
+            if response.choices:
+                result = response.choices[0].message.content
+                
+                if append_to_history:
+                    self.messages.append({
+                        "role": "user",
+                        "content": prompt + " [Image attached]"
+                    })
+                    self.messages.append({
+                        "role": "assistant",
+                        "content": result
+                    })
+                    
+                if self.enable_logging:
+                    logger.info(result)
+                    
+                return result
+            else:
+                raise ValueError("No response generated")
+
+        except Exception as e:
+            logger.error(f"Vision request failed: {e}")
+            raise
 
     def update_context(self, new_context: str) -> None:
         """
@@ -283,6 +346,12 @@ class XAI:
         except (ValueError, KeyError, json.JSONDecodeError) as e:
             logger.error(f"Error converting response to JSON: {e}")
             raise ValueError("Failed to convert response to JSON") from e
+
+    def clear_messages(self) -> None:
+        """
+        Clear the message history.
+        """
+        self.messages = []
 
 # Example usage
 if __name__ == "__main__":

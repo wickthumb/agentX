@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='agentxai',
-    version='0.1.3',
+    version='0.1.5',
     author='wickthumb',
     author_email='steven@wick3d.llc',
     description='An agent that uses XAI to achieve goals by executing tools',

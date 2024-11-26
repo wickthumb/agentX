@@ -43,6 +43,7 @@ def main():
     
     # Initialize agent
     agent = AgentX(
+        model="gpt-4o-mini",
         tools=tools,
         mission=mission,
         enable_logging=True,
@@ -53,6 +54,7 @@ def main():
     result = agent.execute_mission()
     
     logger.info(f"Mission completed: {result}")
+    agent.cost
 
 if __name__ == "__main__":
     main()
