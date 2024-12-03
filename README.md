@@ -2,6 +2,10 @@
 
 A lightweight, but effective autonomous agent framework powered by X.AI's Grok model.
 
+# why
+
+been using this code in a few projects and was curios on how to publish on pypy.
+
 ## Features
 
 - **AgentX**: An autonomous agent that can execute complex missions using provided tools
